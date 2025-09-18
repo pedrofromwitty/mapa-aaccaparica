@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <title>Mapa Interativo — Caparica</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
+  <style>
+    html, body { height:100%; margin:0; }
+    #map { height:100%; }
+    .legend {
+      background:#fff; padding:8px 10px; font:14px/16px system-ui, Arial, sans-serif;
+      box-shadow:0 0 15px rgba(0,0,0,.2); border-radius:6px;
+    }
+    .legend .item { display:flex; align-items:center; margin:4px 0; }
+    .legend .swatch { width:12px; height:12px; margin-right:8px; opacity:.85; }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // 1) Mapa (centro aproximado Caparica)
+  const map = L.map('map', { scrollWheelZoom:true }).setView([38.6338, -9.2379], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap contributors'
+  }).addTo(map);
+
+  // 2) Calendário por zona (ISO YYYY-MM-DD)
+  const calendario = [
+    { zona:1, inicio:'2025-10-08', fim:'2025-10-13' },
+    { zona: 2, inicio:'2025-10-14', fim:'2025-10-18' },
+    { zona: 3, inicio:'2025-10-19', fim:'2025-10-21' },
+    { zona: 4, inicio:'2025-10-22', fim:'2025-10-26' },
+    { zona: 5, inicio:'2025-10-27', fim:'2025-10-30' },
+    { zona: 6, inicio:'2025-10-31', fim:'2025-11-04' },
+    { zona: 7, inicio:'2025-11-05', fim:'2025-11-08' },
+    { zona: 8, inicio:'2025-11-09', fim:'2025-11-16' },
+    { zona: 9, inicio:'2025-11-17', fim:'2025-11-23' },
+    { zona: 10, inicio:'2025-11-24', fim:'2025-11-30' },
+  ];
+
+  // 3) Funções de estado e estilo
+  const cores = { concluida:'#2E7D32', intervencao:'#E53935', planeada:'#FB8C00' };
+
+  function estadoZona(isoInicio, isoFim, refDate=new Date()){
+    // força 00:00 locais para evitar dúvidas de fuso
+    const inicio = new Date(isoInicio+'T00:00:00');
+    const fim    = new Date(isoFim   +'T23:59:59');
+    if (refDate < inicio) return 'planeada';
+    if (refDate > fim)    return 'concluida';
+    return 'intervencao';
+  }
+
+  function labelEstado(e){
+    return e==='concluida'   ? 'Intervenção Concluída (Permitida)'
+         : e==='intervencao' ? 'Em Intervenção (Interdita)'
+         :                     'Intervenção Planeada (Permitida)';
+  }
+
+  // 4) GeoJSON das zonas (EXEMPLO: substitui por polígonos reais!)
+  //    ATENÇÃO: GeoJSON = [lng, lat]. Usa My Maps → exporta KML → converte para GeoJSON.
+ const zonasGeoJSON = {
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type":"Feature",
+      "properties":{"zona":10},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.256239,38.661344],
+        [-9.258084,38.660590],
+        [-9.254158,38.657689],
+        [-9.252741,38.658628],
+        [-9.256239,38.661344]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"zona":9},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.252870,38.658621],
+        [-9.254007,38.657699],
+        [-9.250188,38.654480],
+        [-9.249029,38.655486],
+        [-9.252870,38.658621]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"zona":8},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.250124,38.654446],
+        [-9.249029,38.655418],
+        [-9.246433,38.651646],
+        [-9.247441,38.651227],
+        [-9.250124,38.654446]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"zona":7},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.24742,38.650845],
+        [-9.24624,38.651348],
+        [-9.244609,38.648984],
+        [-9.245682,38.648565],
+        [-9.24742,38.650845]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"zona":6},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.245639,38.648162],
+        [-9.24448,38.648682],
+        [-9.242806,38.646301],
+        [-9.243922,38.645932],
+        [-9.245639,38.648162]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"zona":5},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.243751,38.645479],
+        [-9.242592,38.64605],
+        [-9.241047,38.643769],
+        [-9.242249,38.64335],
+        [-9.243751,38.645479]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"zona":4},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.242034,38.643031],
+        [-9.240875,38.643551],
+        [-9.240446,38.642998],
+        [-9.239502,38.64283],
+        [-9.237957,38.641019],
+        [-9.239845,38.640231],
+        [-9.242034,38.643031]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"zona":3},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.239631,38.639845],
+        [-9.23785,38.640717],
+        [-9.236348,38.63894],
+        [-9.238365,38.638051],
+        [-9.239631,38.639845]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"zona":2},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.23815,38.637799],
+        [-9.236026,38.638755],
+        [-9.234352,38.636458],
+        [-9.235919,38.63577],
+        [-9.23815,38.637799]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"zona":1},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-9.234138,38.63629],
+        [-9.235361,38.635552],
+        [-9.232399,38.632466],
+        [-9.230769,38.633372],
+        [-9.231884,38.634395],
+        [-9.2327,38.634697],
+        [-9.234138,38.63629]
+      ]]}
+    }
+    // … adiciona as restantes zonas no mesmo formato
+  ]
+};
+
+
+  // 5) Enriquecer cada feature com as datas e estado
+  const calMap = new Map(calendario.map(r => [String(r.zona), r]));
+  const hoje = new Date(); // usa o relógio do browser
+
+  const layer = L.geoJSON(zonasGeoJSON, {
+    style: f => {
+      const z = String(f.properties.zona);
+      const cal = calMap.get(z);
+      const estado = cal ? estadoZona(cal.inicio, cal.fim, hoje) : 'planeada';
+      return {
+        color: '#222',
+        weight: 1.5,
+        fillColor: cores[estado],
+        fillOpacity: .5
+      };
+    },
+    onEachFeature: (f, l) => {
+      const z = String(f.properties.zona);
+      const cal = calMap.get(z);
+      const inicio = cal?.inicio ?? '—';
+      const fim    = cal?.fim ?? '—';
+      const est    = cal ? estadoZona(cal.inicio, cal.fim, hoje) : 'planeada';
+
+      l.bindPopup(
+        `<h3 style="margin:.2em 0">Zona ${z}</h3>
+         <div><b>Estado:</b> ${labelEstado(est)}</div>
+         <div><b>Período:</b> ${fmtData(inicio)} – ${fmtData(fim)}</div>`
+      );
+
+      // hover highlight
+      l.on('mouseover', () => l.setStyle({weight:3, fillOpacity:.6}));
+      l.on('mouseout',  () => l.setStyle({weight:1.5, fillOpacity:.5}));
+    }
+  }).addTo(map);
+
+  map.fitBounds(layer.getBounds(), { padding:[20,20] });
+
+  // 6) Legenda
+  const legend = L.control({position:'bottomright'});
+  legend.onAdd = function(){
+    const div = L.DomUtil.create('div','legend');
+    div.innerHTML = `
+      <div class="item"><span class="swatch" style="background:${cores.concluida}"></span>Intervenção Concluída (Permitida)</div>
+      <div class="item"><span class="swatch" style="background:${cores.intervencao}"></span>Em Intervenção (Interdita)</div>
+      <div class="item"><span class="swatch" style="background:${cores.planeada}"></span>Intervenção Planeada (Permitida)</div>
+    `;
+    return div;
+  };
+  legend.addTo(map);
+
+  // Helper para formatar datas (2025-10-08 → 8 out 2025)
+  function fmtData(iso){
+    if(!iso) return '—';
+    const d = new Date(iso+'T00:00:00');
+    const mes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][d.getMonth()];
+    return `${String(d.getDate()).padStart(2,'0')} ${mes} ${d.getFullYear()}`;
+  }
+</script>
+</body>
+</html>
