@@ -5,6 +5,7 @@
   <title>Mapa Interativo — Caparica</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
+
   <style>
     html, body { height:100%; margin:0; }
     #map { height:100%; }
@@ -28,7 +29,7 @@
       height:12px;
       margin-right:8px;
       opacity:.85;
-      flex: 0 0 12px;
+      flex:0 0 12px;
     }
 
     .leaflet-popup-content h3 {
@@ -42,10 +43,12 @@
     }
   </style>
 </head>
+
 <body>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
   // 1) Mapa
   const map = L.map('map', { scrollWheelZoom:true }).setView([38.6338, -9.2379], 14);
@@ -54,30 +57,89 @@
     attribution:'© OpenStreetMap contributors'
   }).addTo(map);
 
-  // 2) Cores
+  // 2) Estados e cores
   const cores = {
     concluida: '#2E7D32',
-    mesAtual:  '#E53935',
-    futura:    '#FB8C00'
+    emCurso:   '#E53935',
+    planeada:  '#FB8C00'
   };
 
+  function labelEstado(estado) {
+    if (estado === 'concluida') return 'Intervenção concluída';
+    if (estado === 'emCurso') return 'Intervenção em curso / podem ocorrer condicionamentos';
+    return 'Intervenção planeada';
+  }
+
   // 3) Metadados por zona
-  // previsao deve estar no formato:
-  // - "abril 2026"
-  // - "maio 2026"
-  // - "abril/maio 2026"
-  // - "maio/junho 2026"
+  // Para alterar a cor, muda apenas o campo "estado":
+  // estado: 'concluida' | 'emCurso' | 'planeada'
   const zonasMeta = [
-    { zona: 10, label: 'EV1 - Setor Norte',   previsao: 'abril 2026' },
-    { zona: 9,  label: 'EV1 - Setor Central', previsao: 'abril/maio 2026' },
-    { zona: 8,  label: 'EV1 - Setor Sul',     previsao: 'abril/maio 2026' },
-    { zona: 7,  label: 'EC7',                 previsao: 'maio 2026' },
-    { zona: 6,  label: 'EC6',                 previsao: 'maio 2026' },
-    { zona: 5,  label: 'EC5',                 previsao: 'maio 2026' },
-    { zona: 4,  label: 'EC4',                 previsao: 'maio 2026' },
-    { zona: 3,  label: 'EC3',                 previsao: 'maio 2026' },
-    { zona: 2,  label: 'EC2',                 previsao: 'maio/junho 2026' },
-    { zona: 1,  label: 'EC1',                 previsao: 'maio/junho 2026' }
+    {
+      zona: 10,
+      label: 'Praia de São João da Caparica (Norte)',
+      previsao: 'abril 2026',
+      estado: 'emCurso'
+    },
+    {
+      zona: 9,
+      label: 'Praia de São João da Caparica (Centro)',
+      previsao: 'abril/maio 2026',
+      estado: 'emCurso'
+    },
+    {
+      zona: 8,
+      label: 'Praia de São João da Caparica (Sul)',
+      previsao: 'abril/maio 2026',
+      estado: 'planeada'
+    },
+    {
+      zona: 7,
+      label: 'Praia do Norte',
+      previsao: 'maio 2026',
+      estado: 'planeada'
+    },
+    {
+      zona: 6,
+      label: 'Praia de Santo António da Caparica',
+      previsao: 'maio 2026',
+      estado: 'planeada'
+    },
+    {
+      zona: 5,
+      label: 'Praia do C.D.S.',
+      previsao: 'maio 2026',
+      estado: 'planeada'
+    },
+    {
+      zona: 4,
+      label: 'Praia do Tarquínio-Paraíso',
+      previsao: 'maio 2026',
+      estado: 'planeada'
+    },
+    {
+      zona: 3,
+      label: 'Praia do Dragão Vermelho',
+      previsao: 'maio 2026',
+      estado: 'planeada'
+    },
+    {
+      zona: 2,
+      label: 'Praia Nova',
+      previsao: 'maio/junho 2026',
+      estado: 'planeada'
+    },
+    {
+      zona: 1,
+      label: 'Nova Praia',
+      previsao: 'maio/junho 2026',
+      estado: 'planeada'
+    },
+    {
+      zona: 0,
+      label: 'Praia da Saúde',
+      previsao: 'maio/junho 2026',
+      estado: 'planeada'
+    }
   ];
 
   const metaMap = new Map(zonasMeta.map(item => [String(item.zona), item]));
@@ -199,91 +261,27 @@
           [-9.2327,38.634697],
           [-9.234138,38.63629]
         ]]}
+      },
+      {
+        "type":"Feature",
+        "properties":{"zona":0},
+        "geometry":{"type":"Polygon","coordinates":[[
+          [-9.230769,38.633372],
+          [-9.232399,38.632466],
+          [-9.229460,38.629380],
+          [-9.227830,38.630290],
+          [-9.230769,38.633372]
+        ]]}
       }
     ]
   };
 
-  // 5) Helpers de meses
-  const meses = {
-    'janeiro': 0,
-    'fevereiro': 1,
-    'março': 2,
-    'marco': 2,
-    'abril': 3,
-    'maio': 4,
-    'junho': 5,
-    'julho': 6,
-    'agosto': 7,
-    'setembro': 8,
-    'outubro': 9,
-    'novembro': 10,
-    'dezembro': 11
-  };
-
-  function parsePrevisao(previsao) {
-    // Exemplos aceites:
-    // "abril 2026"
-    // "abril/maio 2026"
-    // "maio/junho 2026"
-    const txt = (previsao || '').trim().toLowerCase();
-    if (!txt) return null;
-
-    const parts = txt.split(' ');
-    if (parts.length < 2) return null;
-
-    const mesesParte = parts[0];
-    const ano = parseInt(parts[1], 10);
-    if (isNaN(ano)) return null;
-
-    const mesesTexto = mesesParte.split('/');
-    const mesesNumericos = mesesTexto
-      .map(m => meses[m])
-      .filter(m => Number.isInteger(m));
-
-    if (!mesesNumericos.length) return null;
-
-    return {
-      ano,
-      meses: mesesNumericos
-    };
-  }
-
-  function estadoPorPrevisao(previsao, refDate = new Date()) {
-    const parsed = parsePrevisao(previsao);
-    if (!parsed) return 'futura';
-
-    const anoAtual = refDate.getFullYear();
-    const mesAtual = refDate.getMonth();
-
-    const mesesAbsolutos = parsed.meses.map(m => parsed.ano * 12 + m);
-    const atualAbsoluto = anoAtual * 12 + mesAtual;
-
-    const minPrev = Math.min(...mesesAbsolutos);
-    const maxPrev = Math.max(...mesesAbsolutos);
-
-    if (atualAbsoluto < minPrev) return 'futura';
-    if (atualAbsoluto > maxPrev) return 'concluida';
-    return 'mesAtual';
-  }
-
-  function labelEstado(estado) {
-    if (estado === 'concluida') {
-      return 'Intervenção concluída';
-    }
-    if (estado === 'mesAtual') {
-      return 'Intervenção prevista para este mês (podem ocorrer condicionamentos)';
-    }
-    return 'Intervenção planeada';
-  }
-
-  // 6) Desenho das zonas
-  const hoje = new Date();
-
+  // 5) Desenho das zonas
   const layer = L.geoJSON(zonasGeoJSON, {
     style: function(feature) {
       const z = String(feature.properties.zona);
       const meta = metaMap.get(z);
-      const estado = estadoPorPrevisao(meta?.previsao, hoje);
+      const estado = meta?.estado || 'planeada';
 
       return {
         color: '#222',
@@ -292,12 +290,13 @@
         fillOpacity: 0.5
       };
     },
+
     onEachFeature: function(feature, layerItem) {
       const z = String(feature.properties.zona);
       const meta = metaMap.get(z) || {};
       const label = meta.label || `Zona ${z}`;
       const previsao = meta.previsao || '—';
-      const estado = estadoPorPrevisao(previsao, hoje);
+      const estado = meta.estado || 'planeada';
 
       layerItem.bindPopup(
         `<h3>${label}</h3>
@@ -317,25 +316,27 @@
 
   map.fitBounds(layer.getBounds(), { padding:[20,20] });
 
-  // 7) Legenda
+  // 6) Legenda
   const legend = L.control({ position:'bottomright' });
 
   legend.onAdd = function() {
     const div = L.DomUtil.create('div', 'legend');
+
     div.innerHTML = `
       <div class="item">
         <span class="swatch" style="background:${cores.concluida}"></span>
         Intervenção concluída
       </div>
       <div class="item">
-        <span class="swatch" style="background:${cores.mesAtual}"></span>
-        Intervenção prevista para este mês (podem ocorrer condicionamentos)
+        <span class="swatch" style="background:${cores.emCurso}"></span>
+        Intervenção em curso / podem ocorrer condicionamentos
       </div>
       <div class="item">
-        <span class="swatch" style="background:${cores.futura}"></span>
+        <span class="swatch" style="background:${cores.planeada}"></span>
         Intervenção planeada
       </div>
     `;
+
     return div;
   };
 
